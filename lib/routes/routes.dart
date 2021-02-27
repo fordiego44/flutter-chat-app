@@ -10,7 +10,7 @@ import 'package:flutter/cupertino.dart';
 
 final Map<String, Widget Function( BuildContext )>appRoutes = {
 
-  'usuatios': (_) => UsuariosPage() , 
+  'usuarios': (_) => UsuariosPage() , 
   'chat'    : (_) => ChatPage()     ,
   'login'   : (_) => LoginPage()    ,
   'register' : (_) => RegisterPage() ,

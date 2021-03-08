@@ -1,9 +1,12 @@
+import 'package:chat/helpers/mostrar_alerta.dart';
+import 'package:chat/services/auth_service.dart';
 import 'package:chat/widgets/boton_azul.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chat/widgets/custom_input.dart';
 import 'package:chat/widgets/labels.dart';
 import 'package:chat/widgets/logo.dart';
+import 'package:provider/provider.dart';
 
 
 class RegisterPage extends StatelessWidget {
@@ -51,6 +54,9 @@ class __FormState extends State<_Form> {
 
   @override
   Widget build(BuildContext context) {
+
+    final authService = Provider.of<AuthService>(context);
+
     return Container(//Siempre el container
        margin: EdgeInsets.only( top: 40.0),
        padding: EdgeInsets.symmetric(horizontal: 50.0) ,
@@ -75,10 +81,21 @@ class __FormState extends State<_Form> {
             isPassword: true,
           ), 
           BotonAzul(
-            texto: 'Ingresar',
-            onPressed: (){
-              print( emailCtrl.text );
-              print( passCtrl.text );
+            texto: 'Crear cuenta',
+            onPressed: (authService.autenticando) 
+                ? null 
+                : () async { 
+              
+              FocusScope.of(context).unfocus(); //Esto desaparece el foco principal, ejemplo, el foco principal era mi teclado del cell y cone l metodo lo quito      
+
+              final registroOk = await authService.register(nameCtrl.text.trim(), emailCtrl.text.trim(), passCtrl.text.trim());
+              
+              if ( registroOk == true ) {
+                  Navigator.pushReplacementNamed(context, 'usuarios');
+              }else{
+                  mostrarAlerta(context, 'Registro incorrecto', registroOk ); 
+              }
+              
             },
           )//Crea un boton rectangular      
          ],

@@ -1,5 +1,6 @@
 import 'package:chat/helpers/mostrar_alerta.dart';
 import 'package:chat/services/auth_service.dart';
+import 'package:chat/services/socket_service.dart';
 import 'package:chat/widgets/boton_azul.dart';
 import 'package:flutter/material.dart';
 
@@ -55,7 +56,8 @@ class __FormState extends State<_Form> {
   Widget build(BuildContext context) {
 
     final authService = Provider.of<AuthService>( context ); //Colocariamos el listen en false porque no vamos aredibujar nada, solo hacer un peticion
-              
+    final socketService = Provider.of<SocketService>( context ); //Colocariamos el listen en false porque no vamos aredibujar nada, solo hacer un peticion
+                    
 
     return Container(//Siempre el container
        margin: EdgeInsets.only( top: 40.0),
@@ -82,6 +84,7 @@ class __FormState extends State<_Form> {
                     final loginOk = await authService.login(emailCtrl.text.trim(), passCtrl.text.trim());
 
                     if (loginOk) {
+                        socketService.connect(); //Se ejecuta la conecion al socket server 
                         //Navegar a otra pantalla
                         Navigator.pushReplacementNamed(context, 'usuarios');
                     } else {

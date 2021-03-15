@@ -1,5 +1,6 @@
 import 'package:chat/helpers/mostrar_alerta.dart';
 import 'package:chat/services/auth_service.dart';
+import 'package:chat/services/socket_service.dart';
 import 'package:chat/widgets/boton_azul.dart';
 import 'package:flutter/material.dart';
 
@@ -55,6 +56,7 @@ class __FormState extends State<_Form> {
   @override
   Widget build(BuildContext context) {
 
+    final socketService = Provider.of<SocketService>( context ); //Colocariamos el listen en false porque no vamos aredibujar nada, solo hacer un peticion        
     final authService = Provider.of<AuthService>(context);
 
     return Container(//Siempre el container
@@ -91,6 +93,7 @@ class __FormState extends State<_Form> {
               final registroOk = await authService.register(nameCtrl.text.trim(), emailCtrl.text.trim(), passCtrl.text.trim());
               
               if ( registroOk == true ) {
+                socketService.connect();
                   Navigator.pushReplacementNamed(context, 'usuarios');
               }else{
                   mostrarAlerta(context, 'Registro incorrecto', registroOk ); 

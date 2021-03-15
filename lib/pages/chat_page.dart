@@ -1,8 +1,14 @@
 import 'dart:io';
-
-import 'package:chat/widgets/chat_message.dart';
+import 'package:chat/services/mensajes_response.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:chat/services/auth_service.dart';
+import 'package:chat/services/chat_service.dart';
+import 'package:chat/services/socket_service.dart';
+
+import 'package:chat/widgets/chat_message.dart';
 
 
 class ChatPage extends StatefulWidget {
@@ -16,12 +22,63 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin { //L
   final _textController = new TextEditingController();
   final _focusNode = new FocusNode();
 
+   ChatService chatService; 
+   SocketService socketService;
+   AuthService authService;
+
   final List<ChatMessage> _messages = [   ];
 
   bool _estaEscribiendo = false;
 
   @override
+  void initState() { 
+    this.chatService = Provider.of<ChatService>(context, listen: false);
+    this.socketService = Provider.of<SocketService>(context, listen: false); //Los declaramos desde un inicio, para emitir el mensaje desde el socket
+    this.authService = Provider.of<AuthService>(context, listen: false);
+    
+    this.socketService.socket.on('mensaje-personal', _escucharMensaje );
+    
+
+    _cargarhistorial( chatService.usuarioPara.uid );
+
+    super.initState();
+    
+  }
+
+  void _cargarhistorial( String usuarioID ) async {
+      List<Mensaje> chat = await chatService.getChat(usuarioID); 
+      
+      final history = chat.map((m) => new ChatMessage(
+        texto: m.mensaje,
+        uid: m.de, 
+        animationController: AnimationController(vsync: this, duration: Duration(milliseconds: 0))..forward() //Con el 2puntos activaremos al instante la animacion
+      ));
+
+      setState(() {
+        _messages.insertAll( 0, history );
+      });
+  }
+
+
+  void _escucharMensaje( dynamic payload){ //Como es much codigo lo encerramos en una funcion aparte, de todos modos ahi pedia una funcion
+    final message =  ChatMessage(
+      texto: payload['mensaje'], 
+      uid: payload['de'], 
+      animationController: AnimationController(vsync: this, duration: Duration( milliseconds: 300 ) )
+    );
+
+    setState(() {
+    _messages.insert( 0,message );
+    });
+
+    message.animationController.forward();
+  }
+
+  @override
   Widget build(BuildContext context) {
+
+    
+    final usaurioPara =  chatService.usuarioPara;        
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -30,12 +87,12 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin { //L
         title: Column(
           children: [
             CircleAvatar(
-              child: Text('Te', style: TextStyle( fontSize: 12.0 ),),
+              child: Text(usaurioPara.nombre.substring(0,2), style: TextStyle( fontSize: 12.0 ),),
               backgroundColor: Colors.blue[100],
               maxRadius: 14.0,
             ),
             SizedBox(height: 3.0),
-            Text('Diego Armando Condori Cabrera', style: TextStyle( color: Colors.black87, fontSize: 12.0 ),)
+            Text(usaurioPara.nombre, style: TextStyle( color: Colors.black87, fontSize: 12.0 ),)
           ],
         ),
       ),
@@ -120,18 +177,24 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin { //L
       _textController.clear();
       _focusNode.requestFocus();
 
-      final ChatMessage message = new ChatMessage(
-        uid: '123', 
+      final  newMessage = new ChatMessage(
+        uid: authService.usuario.uid, 
         texto: texto, 
         animationController: AnimationController(
           vsync: this, //Proviene de la mezcla con el   TickerProviderStateMixin
           duration: Duration( milliseconds: 400 )
         )
       );
-      _messages.insert(0, message); //inserta el mensaje desde la posicion 0 de nuestra lista
-      message.animationController.forward(); //Accedo a los datos de mi message y empiezo a correr la animacion, no corre sola, se tiene que activar manualmente
+      _messages.insert(0, newMessage); //inserta el mensaje desde la posicion 0 de nuestra lista
+      newMessage.animationController.forward(); //Accedo a los datos de mi message y empiezo a correr la animacion, no corre sola, se tiene que activar manualmente
       setState(() {
         _estaEscribiendo = false;
+      });  
+ 
+      this.socketService.emit('mensaje-personal', {
+          'de': this.authService.usuario.uid,
+          'para': this.chatService.usuarioPara.uid,
+          'mensaje': texto
       });  
   }
 
@@ -142,6 +205,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin { //L
     for (var message in _messages) {
         message.animationController.dispose(); //Cerramos todo antes de salir de este page
     }
+
+    this.socketService.socket.off('mensaje-personal');
     super.dispose();
   }
   

@@ -1,9 +1,11 @@
-import 'package:chat/pages/login_page.dart';
-import 'package:chat/pages/usuarios_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:chat/services/socket_service.dart';
 import 'package:chat/services/auth_service.dart';
+
+import 'package:chat/pages/login_page.dart';
+import 'package:chat/pages/usuarios_page.dart';
 
 class LoadingPage extends StatelessWidget {
 
@@ -22,11 +24,13 @@ class LoadingPage extends StatelessWidget {
   }
 
   Future checkLoginState( BuildContext context) async{
+
+    final socketService = Provider.of<SocketService>( context ); //Colocariamos el listen en false porque no vamos aredibujar nada, solo hacer un peticion        
     final authService = Provider.of<AuthService>(context, listen: false); //Estoy dentro de una promesa que no redibuja nada,asi que false
     final autenticado =  await authService.isLoggedIn();
 
     if (autenticado) {
-      // TODO: Conextar alsocket server
+      socketService.connect();
       // Navigator.pushReplacementNamed(context, 'usuarios');  
       Navigator.pushReplacement(
         context,
